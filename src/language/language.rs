@@ -302,6 +302,9 @@ pub enum RelayOperator {
     /// (relay-operator relay-leaky-relu <data: access> <alpha: Float64>)
     RelayLeakyReLU,
 
+    /// (relay-operator relay-prelu <data: access> <alpha: Float64> <axis: usize>)
+    RelayPReLU,
+
     /// (relay-operator relay-max-pool2d <data: access>
     ///  <pool size: shape> <strides: shape> <padding: shape>
     ///  <layout: RelayActivationLayout>)
@@ -362,6 +365,9 @@ pub enum RelayOperator {
     /// (relay-operator relay-minimum <a:access> <b: access>)
     RelayMinimum,
 
+    /// (relay-operator relay-equal <a: access> <b: access>)
+    RelayEqual,
+
     /// (relay-opeartor relay-conv2d <data: access> <kernel: access> <strides: shape> <padding: shape>)
     RelayConv2D,
 
@@ -418,6 +424,7 @@ impl FromStr for RelayOperator {
             "relay-batch-norm-inference" => Ok(RelayOperator::RelayBatchNormInference),
             "relay-softmax" => Ok(RelayOperator::RelaySoftmax),
             "relay-relu" => Ok(RelayOperator::RelayReLU),
+            "relay-prelu" => Ok(RelayOperator::RelayPReLU),
             "relay-max-pool2d" => Ok(RelayOperator::RelayMaxPool2D),
             "relay-global-avg-pool2d" => Ok(RelayOperator::RelayGlobalAvgPool2D),
             "relay-batch-flatten" => Ok(RelayOperator::RelayBatchFlatten),
@@ -428,6 +435,7 @@ impl FromStr for RelayOperator {
             "relay-upsampling" => Ok(RelayOperator::RelayUpSampling),
             "relay-maximum" => Ok(RelayOperator::RelayMaximum),
             "relay-minimum" => Ok(RelayOperator::RelayMinimum),
+            "relay-equal" => Ok(RelayOperator::RelayEqual),
             "relay-leaky-relu" => Ok(RelayOperator::RelayLeakyReLU),
             "relay-dense" => Ok(RelayOperator::RelayDense),
             "relay-reshape" => Ok(RelayOperator::RelayReshape),
@@ -470,6 +478,7 @@ impl Display for RelayOperator {
                 RelayOperator::RelaySoftmax => "relay-softmax",
                 RelayOperator::RelayReLU => "relay-relu",
                 RelayOperator::RelayLeakyReLU => "relay-leaky-relu",
+                RelayOperator::RelayPReLU => "relay-prelu",
                 RelayOperator::RelayMaxPool2D => "relay-max-pool2d",
                 RelayOperator::RelayGlobalAvgPool2D => "relay-global-avg-pool2d",
                 RelayOperator::RelayBatchFlatten => "relay-batch-flatten",
@@ -480,6 +489,7 @@ impl Display for RelayOperator {
                 RelayOperator::RelayUpSampling => "relay-upsampling",
                 RelayOperator::RelayMaximum => "relay-maximum",
                 RelayOperator::RelayMinimum => "relay-minimum",
+                RelayOperator::RelayEqual => "relay-equal",
                 RelayOperator::RelayDense => "relay-dense",
                 RelayOperator::RelayReshape => "relay-reshape",
                 RelayOperator::RelayConv1D => "relay-conv1d",
@@ -671,6 +681,17 @@ pub enum AcceleratorFunc {
     VTADense,
     VTAConv1D,
     HlsCNNConv2D,
+    NVDLALayerRelu,
+    NVDLAChannelBiasAdd,
+    NVDLAElemwiseMax,
+    NVDLAElemwiseMin,
+    NVDLAElemwiseEqual,
+    NVDLAElemwiseMul,
+    NVDLAChannelPrelu,
+    NVDLAChannelBatchNorm,
+    NVDLAConv2d,
+    NVDLAAvgPool2d,
+    NVDLAMaxPool2d,
     // (accelerator-call flex-maxpool <access>)
     //
     // Compute's FlexASR's maxpool operator. The input access should be of
@@ -693,6 +714,17 @@ impl FromStr for AcceleratorFunc {
             "vta-dense" => Ok(AcceleratorFunc::VTADense),
             "vta-conv1d" => Ok(AcceleratorFunc::VTAConv1D),
             "hlscnn-conv2d" => Ok(AcceleratorFunc::HlsCNNConv2D),
+            "nvdla-layerrelu" => Ok(AcceleratorFunc::NVDLALayerRelu),
+            "nvdla-channelbiasadd" => Ok(AcceleratorFunc::NVDLAChannelBiasAdd),
+            "nvdla-elemwisemax" => Ok(AcceleratorFunc::NVDLAElemwiseMax),
+            "nvdla-elemwisemin" => Ok(AcceleratorFunc::NVDLAElemwiseMin),
+            "nvdla-elemwiseequal" => Ok(AcceleratorFunc::NVDLAElemwiseEqual),
+            "nvdla-elemwisemul" => Ok(AcceleratorFunc::NVDLAElemwiseMul),
+            "nvdla-channelprelu" => Ok(AcceleratorFunc::NVDLAChannelPrelu),
+            "nvdla-channelbatchnorm" => Ok(AcceleratorFunc::NVDLAChannelBatchNorm),
+            "nvdla-conv2d" => Ok(AcceleratorFunc::NVDLAConv2d),
+            "nvdla-avgpool2d" => Ok(AcceleratorFunc::NVDLAAvgPool2d),
+            "nvdla-maxpool2d" => Ok(AcceleratorFunc::NVDLAMaxPool2d),
             "flex-maxpool" => Ok(AcceleratorFunc::FlexASRMaxPool),
             _ => Err(()),
         }
@@ -710,6 +742,17 @@ impl Display for AcceleratorFunc {
                 AcceleratorFunc::VTADense => "vta-dense",
                 AcceleratorFunc::VTAConv1D => "vta-conv1d",
                 AcceleratorFunc::HlsCNNConv2D => "hlscnn-conv2d",
+                AcceleratorFunc::NVDLALayerRelu => "nvdla-layerrelu",
+                AcceleratorFunc::NVDLAChannelBiasAdd => "nvdla-channelbiasadd",
+                AcceleratorFunc::NVDLAElemwiseMax => "nvdla-elemwisemax",
+                AcceleratorFunc::NVDLAElemwiseMin => "nvdla-elemwisemin",
+                AcceleratorFunc::NVDLAElemwiseEqual => "nvdla-elemwiseequal",
+                AcceleratorFunc::NVDLAElemwiseMul => "nvdla-elemwisemul",
+                AcceleratorFunc::NVDLAChannelPrelu => "nvdla-channelprelu",
+                AcceleratorFunc::NVDLAChannelBatchNorm => "nvdla-channelbatchnorm",
+                AcceleratorFunc::NVDLAConv2d => "nvdla-conv2d",
+                AcceleratorFunc::NVDLAAvgPool2d => "nvdla-avgpool2d",
+                AcceleratorFunc::NVDLAMaxPool2d => "nvdla-maxpool2d",
                 AcceleratorFunc::FlexASRMaxPool => "flex-maxpool",
             }
         )
@@ -1846,6 +1889,236 @@ impl egg::Analysis<Language> for MyAnalysis {
                         };
                         MyAnalysisData::AccessPattern(access)
                     }
+                    crate::language::AcceleratorFunc::NVDLALayerRelu
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseMax
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseMin
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseEqual
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseMul => {
+                        let out_shape = match &egraph[ids[1]].data {
+                            MyAnalysisData::Shape(shape) => shape.shape.slice().to_vec(),
+                            _ => panic!("no shape data appended for NVDLA"),
+                        };
+
+                        MyAnalysisData::AccessPattern(AccessPatternData {
+                            zero_regions: HashMap::default(),
+                            shape: IxDyn(&out_shape[..]),
+                            item_shape: IxDyn(&[]),
+                            relay_shape: Some(IxDyn(&out_shape[..])),
+                            contains_accelerator_calls: true,
+                        })
+                    }
+                    // TODO: TDC - unclear how this works? copy pasted ... I need this to reduce the size to 1 in the range of channels
+                    crate::language::AcceleratorFunc::NVDLAChannelBiasAdd
+                    | crate::language::AcceleratorFunc::NVDLAChannelPrelu => {
+                        let mut access = match ids[1..]
+                            .iter()
+                            .map(|id| &egraph[*id].data)
+                            .collect::<Vec<_>>()[..]
+                        {
+                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::AccessPattern(_), MyAnalysisData::Usize(_) | MyAnalysisData::Shape(_)] => {
+                                a.clone()
+                            }
+                            _ => panic!("Parameters do not type check"),
+                        };
+
+                        if !access.zero_regions.is_empty() {
+                            debug!(
+                                "Throwing away zero region analysis data on line {}",
+                                std::line!()
+                            );
+                        }
+                        access.zero_regions = HashMap::default();
+
+                        MyAnalysisData::AccessPattern(access)
+                    }
+                    // TODO: TDC again copy pasted
+                    crate::language::AcceleratorFunc::NVDLAChannelBatchNorm => {
+                        let mut access = match ids[1..]
+                            .iter()
+                            .map(|id| &egraph[*id].data)
+                            .collect::<Vec<_>>()[..]
+                        {
+                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::Usize(_) | MyAnalysisData::Shape(_), MyAnalysisData::Literal(_)] => {
+                                a.clone()
+                            }
+                            _ => panic!("Parameters do not type check"),
+                        };
+
+                        if !access.zero_regions.is_empty() {
+                            debug!(
+                                "Throwing away zero region analysis data on line {}",
+                                std::line!()
+                            );
+                        }
+                        access.zero_regions = HashMap::default();
+
+                        MyAnalysisData::AccessPattern(access)
+                    }
+                    // TODO: TDC again copy pasted
+                    crate::language::AcceleratorFunc::NVDLAConv2d => {
+                        let access = match ids[1..]
+                            .iter()
+                            .map(|id| &egraph[*id].data)
+                            .collect::<Vec<_>>()[..]
+                        {
+                            [MyAnalysisData::AccessPattern(data), MyAnalysisData::AccessPattern(weight), MyAnalysisData::Shape(strides), MyAnalysisData::Shape(padding), MyAnalysisData::Usize(group), MyAnalysisData::Usize(channels), MyAnalysisData::Shape(kernel_size), MyAnalysisData::RelayActivationLayout(act_layout), MyAnalysisData::RelayKernelLayout(ker_layout)] =>
+                            {
+                                // match act_layout {
+                                //     crate::language::RelayActivationLayout::NCHW => (),
+                                //     crate::language::RelayActivationLayout::NHWC => warn!("Conv2d with NHWC layout detected. The conv2d RelayOperator for Conv2d is broken, but we don't currently have time to fix it before PLDI."),
+                                // }
+                                let mut data_shape = data
+                                    .shape
+                                    .slice()
+                                    .iter()
+                                    .chain(data.item_shape.slice().iter())
+                                    .cloned()
+                                    .collect::<Vec<_>>();
+                                data_shape[2] += padding.shape[0] + padding.shape[2];
+                                data_shape[3] += padding.shape[1] + padding.shape[3];
+                                let n = data_shape[0].clone();
+                                let out_channels = channels.clone();
+                                match *group {
+                                    1 => {
+                                        let access_window_shape = access_windows_resulting_shape(
+                                            &IxDyn(&data_shape[1..]),
+                                            &kernel_size.shape,
+                                            &strides.shape,
+                                        );
+                                        let h = access_window_shape[1];
+                                        let w = access_window_shape[2];
+                                        AccessPatternData {
+                                            shape: IxDyn(&[n, out_channels, h, w]),
+                                            item_shape: IxDyn(&[]),
+                                            relay_shape: Some(IxDyn(&[n, out_channels, h, w])),
+                                            zero_regions: HashMap::default(),
+                                            contains_accelerator_calls: data
+                                                .contains_accelerator_calls
+                                                || weight.contains_accelerator_calls,
+                                        }
+                                    }
+                                    c => {
+                                        match act_layout {
+                                            crate::language::RelayActivationLayout::NCHW => (),
+                                            crate::language::RelayActivationLayout::NHWC => todo!("Not currently supported, supporting only NCHW for PLDI push.")
+                                        }
+                                        match ker_layout {
+                                            crate::language::RelayKernelLayout::OIHW => (),
+                                            crate::language::RelayKernelLayout::HWIO => todo!("Not currently supported, supporting only OIHW for PLDI push.")
+                                        }
+                                        assert_eq!(c, *channels);
+                                        assert_eq!(group, channels);
+                                        assert_eq!(kernel_size.shape[0], *channels);
+
+                                        let weight_shape = weight
+                                            .shape
+                                            .slice()
+                                            .iter()
+                                            .chain(weight.item_shape.slice().iter())
+                                            .cloned()
+                                            .collect::<Vec<_>>();
+
+                                        assert_eq!(weight_shape[1], data_shape[1] / group);
+
+                                        let access_window_shape = access_windows_resulting_shape(
+                                            &IxDyn(&data_shape[2..]),
+                                            &IxDyn(&kernel_size.shape.slice()[1..]),
+                                            &IxDyn(&strides.shape.slice()[1..]),
+                                        );
+
+                                        let h = access_window_shape[0];
+                                        let w = access_window_shape[1];
+
+                                        AccessPatternData {
+                                            shape: IxDyn(&[n, c, h, w]),
+                                            item_shape: IxDyn(&[]),
+                                            relay_shape: Some(IxDyn(&[n, c, h, w])),
+                                            zero_regions: HashMap::default(),
+                                            contains_accelerator_calls: data
+                                                .contains_accelerator_calls
+                                                || weight.contains_accelerator_calls,
+                                        }
+                                    }
+                                }
+                            }
+                            _ => panic!("Cannot parse arguments for Conv2D"),
+                        };
+                        MyAnalysisData::AccessPattern(access)
+                    }
+                    // TODO: TDC again copy pasted
+                    crate::language::AcceleratorFunc::NVDLAAvgPool2d
+                    | crate::language::AcceleratorFunc::NVDLAMaxPool2d => {
+                        let (mut access, pool_size, strides, padding, layout) = match ids[1..]
+                            .iter()
+                            .map(|id| &egraph[*id].data)
+                            .collect::<Vec<_>>()[..]
+                        {
+                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::Shape(pool_size), MyAnalysisData::Shape(strides), MyAnalysisData::Shape(padding), MyAnalysisData::RelayActivationLayout(l)] => {
+                                (a.clone(), pool_size, strides, padding, l)
+                            }
+                            _ => panic!("Parameters do not type check"),
+                        };
+
+                        if !access.zero_regions.is_empty() {
+                            debug!(
+                                "Throwing away zero region analysis data on line {}",
+                                std::line!()
+                            );
+                        }
+                        access.zero_regions = HashMap::default();
+
+                        assert_eq!(access.shape.ndim() + access.item_shape.ndim(), 4);
+                        assert_eq!(pool_size.shape.ndim(), 2);
+                        assert_eq!(strides.shape.ndim(), 2);
+                        assert_eq!(padding.shape.ndim(), 4);
+
+                        match layout {
+                            crate::language::RelayActivationLayout::NCHW => {
+                                // Sorry for the horrific indentation...
+                                access[2] =
+                                // The dimension plus padding
+                                    (((padding.shape[0] + access[2] + padding.shape[2])
+                                      // Get the number of spots where we could pool
+                                      - (pool_size.shape[0] - 1))
+                                     // Then calculate the spots we actually pool at
+                                     // using the stride
+                                     + strides.shape[0]
+                                     - 1)
+                                    / strides.shape[0];
+                                access[3] = (((padding.shape[1] + access[3] + padding.shape[3])
+                                              // Get the number of spots where we could pool
+                                              - (pool_size.shape[1] - 1))
+                                             // Then calculate the spots we actually pool at
+                                             // using the stride
+                                             + strides.shape[1]
+                                    - 1)
+                                    / strides.shape[1];
+                            }
+                            crate::language::RelayActivationLayout::NHWC => {
+                                // Sorry for the horrific indentation...
+                                access[1] =
+                                // The dimension plus padding
+                                    (((padding.shape[0] + access[1] + padding.shape[2])
+                                      // Get the number of spots where we could pool
+                                      - (pool_size.shape[0] - 1))
+                                     // Then calculate the spots we actually pool at
+                                     // using the stride
+                                     + strides.shape[0]
+                                     - 1)
+                                    / strides.shape[0];
+                                access[2] = (((padding.shape[1] + access[2] + padding.shape[3])
+                                              // Get the number of spots where we could pool
+                                              - (pool_size.shape[1] - 1))
+                                             // Then calculate the spots we actually pool at
+                                             // using the stride
+                                             + strides.shape[1]
+                                    - 1)
+                                    / strides.shape[1];
+                            }
+                        }
+
+                        MyAnalysisData::AccessPattern(access)
+                    }
                 }
             }
             AcceleratorFunc(name) => {
@@ -1856,6 +2129,17 @@ impl egg::Analysis<Language> for MyAnalysis {
                     crate::language::AcceleratorFunc::VTAConv1D
                     | crate::language::AcceleratorFunc::VTADense => "vta",
                     crate::language::AcceleratorFunc::HlsCNNConv2D => "hlscnn",
+                    crate::language::AcceleratorFunc::NVDLALayerRelu
+                    | crate::language::AcceleratorFunc::NVDLAChannelBiasAdd
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseMax
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseMin
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseEqual
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseMul
+                    | crate::language::AcceleratorFunc::NVDLAChannelPrelu
+                    | crate::language::AcceleratorFunc::NVDLAChannelBatchNorm
+                    | crate::language::AcceleratorFunc::NVDLAConv2d
+                    | crate::language::AcceleratorFunc::NVDLAAvgPool2d
+                    | crate::language::AcceleratorFunc::NVDLAMaxPool2d => "nvdla",
                 };
                 MyAnalysisData::AcceleratorFunc(AcceleratorFuncData {
                     pattern: name.clone(),
@@ -2276,6 +2560,36 @@ impl egg::Analysis<Language> for MyAnalysis {
                             relay_shape: Some(IxDyn(new_shape.as_slice())),
                             contains_accelerator_calls: a.contains_accelerator_calls
                                 || b.contains_accelerator_calls,
+                        })
+                    }
+                    crate::language::RelayOperator::RelayEqual => {
+                        // let (a, b) = match params[1..]
+                        //     .iter()
+                        //     .map(|id| &egraph[*id].data)
+                        //     .collect::<Vec<_>>()[..]
+                        // {
+                        //     [MyAnalysisData::AccessPattern(a), MyAnalysisData::AccessPattern(b)] => {
+                        //         (a.clone(), b.clone())
+                        //     }
+                        //     _ => panic!(
+                        //         "Parameters do not type check: {:?} {:?}",
+                        //         egraph[params[1]].data, egraph[params[2]].data
+                        //     ),
+                        // };
+
+                        let first_param = &egraph[params[1]].data;
+                        let first_shape = match first_param {
+                            MyAnalysisData::AccessPattern(pattern) => pattern.shape.clone(),
+                            _ => panic!(),
+                        };
+
+                        let out_shape = first_shape.slice().to_vec();
+                        MyAnalysisData::AccessPattern(AccessPatternData {
+                            shape: IxDyn(&out_shape),
+                            item_shape: IxDyn(&[]),
+                            zero_regions: HashMap::default(),
+                            relay_shape: Some(IxDyn(out_shape.as_slice())),
+                            contains_accelerator_calls: false,
                         })
                     }
                     crate::language::RelayOperator::RelayErf => {
@@ -2850,6 +3164,28 @@ impl egg::Analysis<Language> for MyAnalysis {
                         MyAnalysisData::AccessPattern(access)
                     }
                     crate::language::RelayOperator::RelayLeakyReLU => {
+                        let mut access = match params[1..]
+                            .iter()
+                            .map(|id| &egraph[*id].data)
+                            .collect::<Vec<_>>()[..]
+                        {
+                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::Literal(_)] => {
+                                a.clone()
+                            }
+                            _ => panic!("Parameters do not type check"),
+                        };
+
+                        if !access.zero_regions.is_empty() {
+                            debug!(
+                                "Throwing away zero region analysis data on line {}",
+                                std::line!()
+                            );
+                        }
+                        access.zero_regions = HashMap::default();
+
+                        MyAnalysisData::AccessPattern(access)
+                    }
+                    crate::language::RelayOperator::RelayPReLU => {
                         let mut access = match params[1..]
                             .iter()
                             .map(|id| &egraph[*id].data)

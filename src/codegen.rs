@@ -873,6 +873,7 @@ relu((float*) {X}, (float*) {Y}, {N}, {H}, {W}, {C});
 
                     Some(relu_out)
                 }
+                RelayOperator::RelayPReLU => todo!(),
                 RelayOperator::RelayMaxPool2D => {
                     let data = get_c_variable_for_id(expr, ids[1]);
 
@@ -1089,6 +1090,7 @@ add_with_broadcasting((float*) {out}, (float*) {X}, (float*) {Y}, (int*)  {out_s
                 RelayOperator::RelayUpSampling => todo!(),
                 RelayOperator::RelayMaximum => todo!(),
                 RelayOperator::RelayMinimum => todo!(),
+                RelayOperator::RelayEqual => todo!(),
                 RelayOperator::RelayDropout => todo!(),
                 RelayOperator::RelayStack => todo!(),
             }

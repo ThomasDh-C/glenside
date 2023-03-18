@@ -654,6 +654,85 @@ pub fn conv2d_on_hlscnn() -> RW {
             if is_one("?group".parse().unwrap()))
 }
 
+pub fn relu_on_nvdla() -> RW {
+    rewrite!("relu-on-nvdla";
+            "(relay-operator-call relay-relu ?data)"
+            =>
+            "(accelerator-call nvdla-layerrelu ?data)")
+}
+
+// note currently expects axis to be last axis ie NHWC format
+pub fn biasadd_on_nvdla() -> RW {
+    rewrite!("biasadd-on-nvdla";
+            "(relay-operator-call relay-bias-add ?data ?bias ?axis)"
+            =>
+            "(accelerator-call nvdla-channelbiasadd ?data ?bias ?axis)")
+}
+
+pub fn elemwisemax_on_nvdla() -> RW {
+    rewrite!("elemwisemax-on-nvdla";
+            "(relay-operator-call relay-maximum ?lhs ?rhs)"
+            =>
+            "(accelerator-call nvdla-elemwisemax ?lhs ?rhs)")
+}
+
+pub fn elemwisemin_on_nvdla() -> RW {
+    rewrite!("elemwisemin-on-nvdla";
+            "(relay-operator-call relay-minimum ?lhs ?rhs)"
+            =>
+            "(accelerator-call nvdla-elemwisemin ?lhs ?rhs)")
+}
+
+pub fn elemwiseequal_on_nvdla() -> RW {
+    rewrite!("elemwiseequal-on-nvdla";
+            "(relay-operator-call relay-equal ?lhs ?rhs)"
+            =>
+            "(accelerator-call nvdla-elemwiseequal ?lhs ?rhs)")
+}
+
+pub fn elemwisemul_on_nvdla() -> RW {
+    rewrite!("elemwisemul-on-nvdla";
+            "(relay-operator-call relay-multiply ?lhs ?rhs)"
+            =>
+            "(accelerator-call nvdla-elemwisemul ?lhs ?rhs)")
+}
+
+// TODO: implement prelu for step A before uncommenting this
+// pub fn prelu_on_nvdla() -> RW {
+//     rewrite!("prelu-on-nvdla";
+//             "(relay-operator-call relay-prelu ?data ?alpha ?axis)"
+//             =>
+//             "(accelerator-call nvdla-channelprelu ?data ?alpha ?axis)")
+// }
+
+pub fn batchnorm_on_nvdla() -> RW {
+    rewrite!("batchnorm-on-nvdla";
+            "(relay-operator-call relay-batch-norm-inference ?data ?gamma ?beta ?moving_mean ?moving_var ?axis ?epsilon ?center ?scale)"
+            =>
+            "(accelerator-call nvdla-channelbatchnorm ?data ?gamma ?beta ?moving_mean ?moving_var ?axis ?epsilon ?center ?scale)")
+}
+
+pub fn conv2d_on_nvdla() -> RW {
+    rewrite!("conv2d-on-nvdla";
+            "(relay-operator-call relay-conv2d ?data ?weight ?strides ?padding ?dilation ?groups ?channels ?kernel_size ?data_layout ?kernel_layout ?out_layout ?data_type ?out_dtype)"
+            =>
+            "(accelerator-call nvdla-conv2d ?data ?weight ?strides ?padding ?dilation ?groups ?channels ?kernel_size ?data_layout ?kernel_layout ?out_layout ?out_dtype)")
+}
+
+pub fn avgpool2d_on_nvdla() -> RW {
+    rewrite!("avgpool2d-on-nvdla";
+            "(relay-operator-call relay-avgpool2d ?data ?pool_size ?strides ?dilation ?padding ?layout ?out_layout ?ceil_mode ?count_include_pad)"
+            =>
+            "(accelerator-call nvdla-avgpool2d ?data ?pool_size ?strides ?dilation ?padding ?layout ?out_layout ?ceil_mode ?count_include_pad)")
+}
+
+pub fn maxpool2d_on_nvdla() -> RW {
+    rewrite!("avgpool2d-on-nvdla";
+            "(relay-operator-call relay-maxpool2d ?data ?pool_size ?strides ?dilation ?padding ?layout ?out_layout ?ceil_mode ?count_include_pad)"
+            =>
+            "(accelerator-call nvdla-maxpool2d ?data ?pool_size ?strides ?dilation ?padding ?layout ?out_layout ?ceil_mode ?count_include_pad)")
+}
+
 pub fn access_reshape_to_relay() -> RW {
     rewrite!("access-reshape-to-reshape";
         "(access-reshape ?access (access-shape ?shape (shape)))" => "(relay-operator-call relay-reshape ?access ?shape)")

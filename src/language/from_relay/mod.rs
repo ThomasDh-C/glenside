@@ -1427,6 +1427,37 @@ fn compile_expression(
                         todo!();
                     }
                 }
+                "nn.prelu" => {
+                    // assert_eq!(call.args.len(), 2); ... not sure if should be 2 or 3 (data, alpha and axis), but leaky relu was data and alpha and they said 1
+                    // let attrs = call
+                    //     .attrs
+                    //     .clone()
+                    //     .downcast::<tvm::ir::relay::attrs::nn::PreluAttrs>()
+                    //     .unwrap();
+                    // would need newer 3la-tvm version to do this -- see checkouts
+                    let data_id = get_compiled_expression(
+                        call.args.get(0).unwrap().downcast::<Expr>().unwrap(),
+                    );
+                    let alpha_id = get_compiled_expression(
+                        call.args.get(1).unwrap().downcast::<Expr>().unwrap(),
+                    );
+                    let axis_id = get_compiled_expression(
+                        call.args.get(2).unwrap().downcast::<Expr>().unwrap(),
+                    );
+                    let op_id = glenside_expr.add(Language::RelayOperator(
+                        crate::language::RelayOperator::RelayPReLU,
+                    ));
+                    let opaque_call_id = glenside_expr.add(Language::RelayOperatorCall(
+                        vec![op_id, data_id, alpha_id, axis_id].into_boxed_slice(),
+                    ));
+                    if use_opaque_operators_for
+                        .contains(&crate::language::RelayOperator::RelayPReLU)
+                    {
+                        return (opaque_call_id, None);
+                    } else {
+                        todo!();
+                    }
+                }
                 "sqrt" | "negative" => {
                     assert_eq!(call.args.len(), 1);
                     let data_id = get_compiled_expression(call.args.get(0).unwrap());
@@ -1840,7 +1871,7 @@ fn compile_expression(
                         Some(opaque_operator_call),
                     )
                 }
-                "add" | "multiply" | "divide" | "maximum" | "minimum" => {
+                "add" | "multiply" | "divide" | "maximum" | "minimum" | "equal"=> {
                     assert_eq!(call.args.len(), 2);
                     let mut a_id = get_compiled_expression(call.args.get(0).unwrap());
                     let mut a_shape =
@@ -1894,6 +1925,21 @@ fn compile_expression(
                             None,
                         );
                     }
+                    if primitive_op.name.as_str().unwrap() == "equal"
+                        && use_opaque_operators_for
+                            .contains(&crate::language::RelayOperator::RelayEqual)
+                    {
+                        let add_operator_id = glenside_expr.add(Language::RelayOperator(
+                            crate::language::RelayOperator::RelayEqual,
+                        ));
+                        return (
+                            glenside_expr.add(Language::RelayOperatorCall(
+                                vec![add_operator_id, a_id, b_id].into_boxed_slice(),
+                            )),
+                            None,
+                        );
+                    }
+
 
                     while a_shape.len() < b_shape.len() {
                         a_id = access_insert_axis(glenside_expr, a_id, 0);
