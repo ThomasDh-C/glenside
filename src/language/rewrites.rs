@@ -697,13 +697,12 @@ pub fn elemwisemul_on_nvdla() -> RW {
             "(accelerator-call nvdla-elemwisemul ?lhs ?rhs)")
 }
 
-// TODO: implement prelu for step A before uncommenting this
-// pub fn prelu_on_nvdla() -> RW {
-//     rewrite!("prelu-on-nvdla";
-//             "(relay-operator-call relay-prelu ?data ?alpha ?axis)"
-//             =>
-//             "(accelerator-call nvdla-channelprelu ?data ?alpha ?axis)")
-// }
+pub fn prelu_on_nvdla() -> RW {
+    rewrite!("prelu-on-nvdla";
+            "(relay-operator-call relay-prelu ?data ?alpha ?axis)"
+            =>
+            "(accelerator-call nvdla-channelprelu ?data ?alpha ?axis)")
+}
 
 pub fn batchnorm_on_nvdla() -> RW {
     rewrite!("batchnorm-on-nvdla";
