@@ -72,6 +72,7 @@ impl egg::CostFunction<Language> for MonolithicCostFunction<'_> {
             | Language::Usize(_)
             | Language::Int32(_)
             | Language::Int64(_)
+            | Language::Int16(_)
             | Language::Int8(_)
             | Language::Uint8(_)
             | Language::ConstructTuple(_)
@@ -218,7 +219,7 @@ impl CostFunction<Language> for SimpleCostFunction {
             // Other glenside constructs that are necessary.
             Shape(_) | ShapeOf(_) | SliceShape(_) | ShapeInsertAxis(_) | ShapeRemoveAxis(_)
             | List(_) | AccessShape(_) | Usize(_) | Int32(_) | Uint8(_) | PadType(_) | Int64(_)
-            | Int8(_) | ComputeType(_) | Symbol(_) | Literal(_) | NotNanFloat64(_) => 1,
+            | Int8(_) | Int16(_) | ComputeType(_) | Symbol(_) | Literal(_) | NotNanFloat64(_) => 1,
         };
 
         enode.fold(base_cost, |sum, id| sum.saturating_add(costs(id)))
@@ -254,6 +255,7 @@ impl CostFunction<Language> for AcceleratorCostFunction {
             | Language::Int32(_)
             | Language::Uint8(_)
             | Language::Int64(_)
+            | Language::Int16(_)
             | Language::Int8(_)
             | Language::ConstructTuple(_)
             | Language::ConstantTensor(_)

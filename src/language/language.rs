@@ -254,6 +254,8 @@ define_language! {
 
         Int64(i64),
 
+        Int16(i16),
+
         Uint8(u8),
 
         Int8(i8),
@@ -772,6 +774,7 @@ pub enum MyAnalysisData {
     Usize(usize),
     Int32(i32),
     Int64(i64),
+    Int16(i16),
     Int8(i8),
     Uint8(u8),
     DataType(DataType),
@@ -1889,15 +1892,17 @@ impl egg::Analysis<Language> for MyAnalysis {
                         };
                         MyAnalysisData::AccessPattern(access)
                     }
+
                     crate::language::AcceleratorFunc::NVDLALayerRelu
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMax
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMin
                     | crate::language::AcceleratorFunc::NVDLAElemwiseEqual
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMul => {
-                        let out_shape = match &egraph[ids[1]].data {
-                            MyAnalysisData::Shape(shape) => shape.shape.slice().to_vec(),
-                            _ => panic!("no shape data appended for NVDLA"),
+                        let access_pattern = match &egraph[ids[1]].data {
+                            MyAnalysisData::AccessPattern(a) => a.clone(),
+                            _ => panic!("no shape data appended for NVDLA")
                         };
+                        let out_shape = [access_pattern.shape.slice(), access_pattern.item_shape.slice()].concat();
 
                         MyAnalysisData::AccessPattern(AccessPatternData {
                             zero_regions: HashMap::default(),
@@ -4348,6 +4353,7 @@ impl egg::Analysis<Language> for MyAnalysis {
             Int32(x) => MyAnalysisData::Int32(*x),
             Uint8(u) => MyAnalysisData::Uint8(*u),
             Int64(x) => MyAnalysisData::Int64(*x),
+            Int16(x) => MyAnalysisData::Int16(*x),
             Int8(x) => MyAnalysisData::Int8(*x),
             Symbol(name) => {
                 MyAnalysisData::Shape(ShapeData {

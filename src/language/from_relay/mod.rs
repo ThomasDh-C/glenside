@@ -674,6 +674,8 @@ pub fn dtype_from_type(t: tvm::ir::ty::Type) -> crate::language::DataType {
         crate::language::DataType::Int(32)
     } else if dtype == "int64".parse().unwrap() {
         crate::language::DataType::Int(64)
+    } else if dtype == "int64".parse().unwrap() {
+        crate::language::DataType::Int(16)
     } else if dtype == "uint8".parse().unwrap() {
         crate::language::DataType::Uint(8)
     } else {
@@ -694,6 +696,7 @@ pub fn shape_from_type(t: tvm::ir::ty::Type) -> Vec<usize> {
         });
     assert!(
         tensor_type.dtype.clone() == "float32".parse().unwrap()
+            || tensor_type.dtype.clone() == "int16".parse().unwrap()
             || tensor_type.dtype.clone() == "int32".parse().unwrap()
             || tensor_type.dtype.clone() == "int64".parse().unwrap(),
         "only supporting float32x1 and int32x1 at the moment"
@@ -908,6 +911,7 @@ fn compile_expression(
                 || tuple_type.dtype == "int32".parse().unwrap()
                 || tuple_type.dtype == "int64".parse().unwrap()
                 || tuple_type.dtype == "int8".parse().unwrap()
+                || tuple_type.dtype == "int16".parse().unwrap()
                 || tuple_type.dtype == "uint8".parse().unwrap(),
             "Only float32x1 or int32x1 constants supported for now",
         );
@@ -938,6 +942,10 @@ fn compile_expression(
         } else if constant.data.dtype() == "int64".parse().unwrap() {
             let value: i64 = unsafe { *(constant.data.as_dltensor().data as *const i64) };
             let literal_id = glenside_expr.add(Language::Int64(value));
+            (literal_id, None)
+        } else if constant.data.dtype() == "int16".parse().unwrap() {
+            let value: i16 = unsafe { *(constant.data.as_dltensor().data as *const i16) };
+            let literal_id = glenside_expr.add(Language::Int16(value));
             (literal_id, None)
         } else if constant.data.dtype() == "int8".parse().unwrap() {
             let value: i8 = unsafe { *(constant.data.as_dltensor().data as *const i8) };
