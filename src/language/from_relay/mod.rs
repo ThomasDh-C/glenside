@@ -674,7 +674,7 @@ pub fn dtype_from_type(t: tvm::ir::ty::Type) -> crate::language::DataType {
         crate::language::DataType::Int(32)
     } else if dtype == "int64".parse().unwrap() {
         crate::language::DataType::Int(64)
-    } else if dtype == "int64".parse().unwrap() {
+    } else if dtype == "int16".parse().unwrap() {
         crate::language::DataType::Int(16)
     } else if dtype == "uint8".parse().unwrap() {
         crate::language::DataType::Uint(8)
@@ -1879,7 +1879,7 @@ fn compile_expression(
                         Some(opaque_operator_call),
                     )
                 }
-                "add" | "multiply" | "divide" | "maximum" | "minimum" | "equal"=> {
+                "add" | "multiply" | "divide" | "maximum" | "minimum" | "equal" => {
                     assert_eq!(call.args.len(), 2);
                     let mut a_id = get_compiled_expression(call.args.get(0).unwrap());
                     let mut a_shape =
@@ -1947,7 +1947,6 @@ fn compile_expression(
                             None,
                         );
                     }
-
 
                     while a_shape.len() < b_shape.len() {
                         a_id = access_insert_axis(glenside_expr, a_id, 0);
