@@ -352,11 +352,20 @@ pub enum RelayOperator {
     /// (relay-operator relay-mean <data: access> <axis: usize>)
     RelayMean,
 
+    /// (relay-operator relay-sum <data: access> <axis: usize>)
+    RelaySum,
+
     /// (relay-operator relay-add <a: access> <b: access>)
     RelayAdd,
 
+    /// (relay-operator relay-subtract <a: access> <b: access>)
+    RelaySubtract,
+
     /// (relay-operator relay-multiply <a: access> <b: access>)
     RelayMultiply,
+
+    /// (relay-operator relay-fixed-point-multiply <data: access> <multiplier: usize> <shift: usize>)
+    RelayFixedPointMultiply,
 
     /// (relay-operator relay-sigmoid <data: access>)
     RelaySigmoid,
@@ -431,7 +440,9 @@ impl FromStr for RelayOperator {
             "relay-global-avg-pool2d" => Ok(RelayOperator::RelayGlobalAvgPool2D),
             "relay-batch-flatten" => Ok(RelayOperator::RelayBatchFlatten),
             "relay-bias-add" => Ok(RelayOperator::RelayBiasAdd),
+            "relay-sum" => Ok(RelayOperator::RelaySum),
             "relay-add" => Ok(RelayOperator::RelayAdd),
+            "relay-subtract" => Ok(RelayOperator::RelaySubtract),
             "relay-sigmoid" => Ok(RelayOperator::RelaySigmoid),
             "relay-avg-pool2d" => Ok(RelayOperator::RelayAvgPool2D),
             "relay-upsampling" => Ok(RelayOperator::RelayUpSampling),
@@ -445,6 +456,7 @@ impl FromStr for RelayOperator {
             "relay-erf" => Ok(RelayOperator::RelayErf),
             "relay-mean" => Ok(RelayOperator::RelayMean),
             "relay-multiply" => Ok(RelayOperator::RelayMultiply),
+            "relay-fixed-point-multiply" => Ok(RelayOperator::RelayFixedPointMultiply),
             "relay-conv2d" => Ok(RelayOperator::RelayConv2D),
             "relay-split" => Ok(RelayOperator::RelaySplit),
             "relay-cast" => Ok(RelayOperator::RelayCast),
@@ -485,7 +497,9 @@ impl Display for RelayOperator {
                 RelayOperator::RelayGlobalAvgPool2D => "relay-global-avg-pool2d",
                 RelayOperator::RelayBatchFlatten => "relay-batch-flatten",
                 RelayOperator::RelayBiasAdd => "relay-bias-add",
+                RelayOperator::RelaySum => "relay-sum",
                 RelayOperator::RelayAdd => "relay-add",
+                RelayOperator::RelaySubtract => "relay-subtract",
                 RelayOperator::RelaySigmoid => "relay-sigmoid",
                 RelayOperator::RelayAvgPool2D => "relay-avg-pool2d",
                 RelayOperator::RelayUpSampling => "relay-upsampling",
@@ -498,6 +512,7 @@ impl Display for RelayOperator {
                 RelayOperator::RelayErf => "relay-erf",
                 RelayOperator::RelayMean => "relay-mean",
                 RelayOperator::RelayMultiply => "relay-mul",
+                RelayOperator::RelayFixedPointMultiply => "relay-fixed-point-multiply",
                 RelayOperator::RelayConv2D => "relay-conv2d",
                 RelayOperator::RelaySplit => "relay-split",
                 RelayOperator::RelayCast => "relay-cast",
@@ -590,6 +605,7 @@ pub enum ComputeType {
     /// Should figure out an explicit way to define access multiple-stream
     /// access patterns.
     ElementwiseAdd,
+    ElementwiseSub,
     /// Expects item shape of `a x b1 x .. x bn`. Performs an elementwise
     /// multiplication of the `a` tensors of size `b1 x .. x bn`.
     ElementwiseMul,
@@ -615,6 +631,7 @@ impl FromStr for ComputeType {
             "sqrt" => Ok(ComputeType::Sqrt),
             "negative" => Ok(ComputeType::Negative),
             "elementwise-add" => Ok(ComputeType::ElementwiseAdd),
+            "elementwise-sub" => Ok(ComputeType::ElementwiseSub),
             "elementwise-mul" => Ok(ComputeType::ElementwiseMul),
             "elementwise-div" => Ok(ComputeType::ElementwiseDiv),
             "softmax" => Ok(ComputeType::Softmax),
@@ -636,6 +653,7 @@ impl Display for ComputeType {
                 ComputeType::Sqrt => "sqrt",
                 ComputeType::Negative => "negative",
                 ComputeType::ElementwiseAdd => "elementwise-add",
+                ComputeType::ElementwiseSub => "elementwise-sub",
                 ComputeType::ElementwiseMul => "elementwise-mul",
                 ComputeType::ElementwiseDiv => "elementwise-div",
                 ComputeType::Softmax => "softmax",
@@ -648,6 +666,10 @@ impl Display for ComputeType {
 /// Specifies how to pick the values we pad with.
 #[derive(Debug, PartialEq, Eq, Hash, Clone, PartialOrd, Ord, Copy)]
 pub enum PadType {
+    // Pad with a float value
+    FloatPadding(NotNan<f64>),
+    // Pad with a int value
+    IntPadding(i32),
     /// Pad with zeroes.
     ZeroPadding,
     /// Pad with minimum representable number in the number system.
@@ -655,10 +677,23 @@ pub enum PadType {
 }
 impl FromStr for PadType {
     type Err = ();
+
     fn from_str(input: &str) -> Result<PadType, Self::Err> {
-        match input {
-            "zero-padding" => Ok(PadType::ZeroPadding),
-            "min-padding" => Ok(PadType::MinPadding),
+        let val = match input.find(char::is_numeric) {
+            Some(idx) => input.split_at(idx).0,
+            None => "0",
+        };
+        let reduced_input = match input.find("-padding") {
+            Some(idx) => input.split_at(idx).0,
+            _ => "",
+        };
+        match reduced_input {
+            "float" => Ok(PadType::FloatPadding(
+                NotNan::new(f64::from_str(val).unwrap()).unwrap(),
+            )),
+            "int" => Ok(PadType::IntPadding(i32::from_str(val).unwrap())),
+            "zero" => Ok(PadType::ZeroPadding),
+            "min" => Ok(PadType::MinPadding),
             _ => Err(()),
         }
     }
@@ -669,8 +704,10 @@ impl Display for PadType {
             f,
             "{}",
             match self {
-                PadType::ZeroPadding => "zero-padding",
-                PadType::MinPadding => "min-padding",
+                PadType::ZeroPadding => String::from("zero-padding"),
+                PadType::MinPadding => String::from("min-padding"),
+                PadType::IntPadding(i) => format!("{}", *i),
+                PadType::FloatPadding(float) => format!("{}", *float),
             }
         )
     }
@@ -1900,9 +1937,13 @@ impl egg::Analysis<Language> for MyAnalysis {
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMul => {
                         let access_pattern = match &egraph[ids[1]].data {
                             MyAnalysisData::AccessPattern(a) => a.clone(),
-                            _ => panic!("no shape data appended for NVDLA")
+                            _ => panic!("no shape data appended for NVDLA"),
                         };
-                        let out_shape = [access_pattern.shape.slice(), access_pattern.item_shape.slice()].concat();
+                        let out_shape = [
+                            access_pattern.shape.slice(),
+                            access_pattern.item_shape.slice(),
+                        ]
+                        .concat();
 
                         MyAnalysisData::AccessPattern(AccessPatternData {
                             zero_regions: HashMap::default(),
@@ -2505,6 +2546,7 @@ impl egg::Analysis<Language> for MyAnalysis {
                         })
                     }
                     crate::language::RelayOperator::RelayAdd
+                    | crate::language::RelayOperator::RelaySubtract
                     | crate::language::RelayOperator::RelayMultiply
                     | crate::language::RelayOperator::RelayMaximum
                     | crate::language::RelayOperator::RelayMinimum => {
@@ -2705,6 +2747,7 @@ impl egg::Analysis<Language> for MyAnalysis {
                         }
                     }
                     crate::language::RelayOperator::RelayArgmax
+                    | crate::language::RelayOperator::RelaySum
                     | crate::language::RelayOperator::RelayMean => {
                         let access = match params[1..]
                             .iter()
@@ -2795,7 +2838,7 @@ impl egg::Analysis<Language> for MyAnalysis {
                             .map(|id| &egraph[*id].data)
                             .collect::<Vec<_>>()[..]
                         {
-                            [MyAnalysisData::AccessPattern(data), MyAnalysisData::AccessPattern(weight), MyAnalysisData::Shape(strides), MyAnalysisData::Shape(padding), MyAnalysisData::Usize(group), MyAnalysisData::Usize(channels), MyAnalysisData::Shape(kernel_size), MyAnalysisData::RelayActivationLayout(act_layout), MyAnalysisData::RelayKernelLayout(ker_layout)] =>
+                            [MyAnalysisData::AccessPattern(data), MyAnalysisData::AccessPattern(weight), MyAnalysisData::Shape(strides), MyAnalysisData::Shape(padding), MyAnalysisData::Usize(group), MyAnalysisData::Usize(channels), MyAnalysisData::Shape(kernel_size), MyAnalysisData::RelayActivationLayout(act_layout), MyAnalysisData::RelayKernelLayout(ker_layout), _] =>
                             {
                                 // match act_layout {
                                 //     crate::language::RelayActivationLayout::NCHW => (),
@@ -3145,6 +3188,28 @@ impl egg::Analysis<Language> for MyAnalysis {
                                     / strides.shape[1];
                             }
                         }
+
+                        MyAnalysisData::AccessPattern(access)
+                    }
+                    crate::language::RelayOperator::RelayFixedPointMultiply => {
+                        let (mut access, _, _) = match params[1..]
+                            .iter()
+                            .map(|id| &egraph[*id].data)
+                            .collect::<Vec<_>>()[..]
+                        {
+                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::Usize(multiplier), MyAnalysisData::Usize(shift)] => {
+                                (a.clone(), multiplier, shift)
+                            }
+                            _ => panic!("Parameters do not type check"),
+                        };
+
+                        if !access.zero_regions.is_empty() {
+                            debug!(
+                                "Throwing away zero region analysis data on line {}",
+                                std::line!()
+                            );
+                        }
+                        access.zero_regions = HashMap::default();
 
                         MyAnalysisData::AccessPattern(access)
                     }
@@ -3683,6 +3748,8 @@ impl egg::Analysis<Language> for MyAnalysis {
                             .unwrap()
                             .add_range((0, pad_before));
                     }
+                    // TODO: maintain zero_regions
+                    _ => (),
                 }
 
                 // TODO(@gussmith23) Remove this after figuring out padding issues
@@ -4017,6 +4084,7 @@ impl egg::Analysis<Language> for MyAnalysis {
                         })
                     }
                     self::ComputeType::ElementwiseAdd
+                    | self::ComputeType::ElementwiseSub
                     | self::ComputeType::ElementwiseMul
                     | self::ComputeType::ElementwiseDiv => {
                         assert!(a0.item_shape.ndim() >= 1);

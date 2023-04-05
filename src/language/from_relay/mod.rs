@@ -153,6 +153,7 @@ pub fn conv2d(
     data_layout: &str,
     kernel_layout: &str,
     out_layout: &str,
+    out_dtype: crate::language::DataType,
 ) -> (Id, Option<Id>) {
     assert_eq!(data_shape.len(), 4);
     assert_eq!(weights_shape.len(), 4);
@@ -264,6 +265,7 @@ pub fn conv2d(
                 usize_kh_id,
                 usize_kw_id,
             ])));
+            let dtype_id = expr.add(Language::DataType(out_dtype));
 
             let operator_call_id = expr.add(Language::RelayOperatorCall(
                 vec![
@@ -277,6 +279,7 @@ pub fn conv2d(
                     weights_shape_id,
                     activation_layout_id,
                     kernel_layout_id,
+                    dtype_id,
                 ]
                 .into_boxed_slice(),
             ));
@@ -348,6 +351,8 @@ pub fn conv2d(
                 vec![o_id, list[2], list[3]].into_boxed_slice(),
             ));
 
+            let out_dtype_id = expr.add(Language::DataType(out_dtype));
+
             let operator_call_id = expr.add(Language::RelayOperatorCall(
                 vec![
                     operator_id,
@@ -360,6 +365,7 @@ pub fn conv2d(
                     relay_operator_weight_shape_id,
                     activation_layout_id,
                     kernel_layout_id,
+                    out_dtype_id,
                 ]
                 .into_boxed_slice(),
             ));
@@ -657,6 +663,20 @@ pub fn access_pair(
     expr.add(Language::AccessPair([a_id, b_id]))
 }
 
+pub fn dtype_from_tvm_dtype(t: tvm::DataType) -> crate::language::DataType {
+    if t.is_type::<f32>() {
+        return crate::language::DataType::Float(32);
+    } else if t.is_type::<f64>() {
+        return crate::language::DataType::Float(64);
+    } else if t.is_type::<i32>() {
+        return crate::language::DataType::Int(32);
+    } else if t.is_type::<i8>() {
+        return crate::language::DataType::Int(8);
+    }
+
+    panic!("Unknown datatype");
+}
+
 pub fn dtype_from_type(t: tvm::ir::ty::Type) -> crate::language::DataType {
     let tensor_type = t
         .clone()
@@ -676,6 +696,8 @@ pub fn dtype_from_type(t: tvm::ir::ty::Type) -> crate::language::DataType {
         crate::language::DataType::Int(64)
     } else if dtype == "int16".parse().unwrap() {
         crate::language::DataType::Int(16)
+    } else if dtype == "int8".parse().unwrap() {
+        crate::language::DataType::Int(8)
     } else if dtype == "uint8".parse().unwrap() {
         crate::language::DataType::Uint(8)
     } else {
@@ -696,6 +718,8 @@ pub fn shape_from_type(t: tvm::ir::ty::Type) -> Vec<usize> {
         });
     assert!(
         tensor_type.dtype.clone() == "float32".parse().unwrap()
+            || tensor_type.dtype.clone() == "uint8".parse().unwrap()
+            || tensor_type.dtype.clone() == "int8".parse().unwrap()
             || tensor_type.dtype.clone() == "int16".parse().unwrap()
             || tensor_type.dtype.clone() == "int32".parse().unwrap()
             || tensor_type.dtype.clone() == "int64".parse().unwrap(),
@@ -901,6 +925,8 @@ fn compile_expression(
             .clone()
             .downcast::<TensorType>()
             .unwrap();
+        // print relay_expr
+        println!("relay_expr: {:?}", tvm::ir::as_text(relay_expr.clone()));
         assert_eq!(
             tuple_type.shape.len(),
             0,
@@ -1792,9 +1818,12 @@ fn compile_expression(
                             .as_dltensor()
                             .data as *const i32)
                     };
-                    assert_eq!(pad_value, 0);
+                    // assert_eq!(pad_value, 0);
                     let mut data_id = get_compiled_expression(call.args.get(0).unwrap());
-                    let pad_type_id = glenside_expr.add(Language::PadType(PadType::ZeroPadding));
+                    // println!("{}", pad_value);
+                    let pad_type_id = glenside_expr.add(Language::PadType(PadType::FloatPadding(
+                        NotNan::new(pad_value as f64).unwrap(),
+                    )));
                     for axis in 0..attrs.pad_width.len() {
                         let padding = attrs.pad_width.get(axis as isize).unwrap();
                         assert_eq!(padding.len(), 2);
@@ -1879,7 +1908,7 @@ fn compile_expression(
                         Some(opaque_operator_call),
                     )
                 }
-                "add" | "multiply" | "divide" | "maximum" | "minimum" | "equal" => {
+                "add" | "multiply" | "divide" | "maximum" | "minimum" | "equal" | "subtract" => {
                     assert_eq!(call.args.len(), 2);
                     let mut a_id = get_compiled_expression(call.args.get(0).unwrap());
                     let mut a_shape =
@@ -1947,6 +1976,23 @@ fn compile_expression(
                             None,
                         );
                     }
+                    println!(
+                        "primitive_op.name.as_str().unwrap(): {:?}",
+                        primitive_op.name.as_str().unwrap()
+                    );
+                    // TODO: MIKE and TDC: add back in && use_opaque_operators_for
+                    // .contains(&crate::language::RelayOperator::RelaySubtract)
+                    if primitive_op.name.as_str().unwrap() == "subtract" {
+                        let add_operator_id = glenside_expr.add(Language::RelayOperator(
+                            crate::language::RelayOperator::RelaySubtract,
+                        ));
+                        return (
+                            glenside_expr.add(Language::RelayOperatorCall(
+                                vec![add_operator_id, a_id, b_id].into_boxed_slice(),
+                            )),
+                            None,
+                        );
+                    }
 
                     while a_shape.len() < b_shape.len() {
                         a_id = access_insert_axis(glenside_expr, a_id, 0);
@@ -1984,7 +2030,10 @@ fn compile_expression(
                     }
 
                     let pair_id = access_pair(glenside_expr, a_id, b_id, 0);
-
+                    println!(
+                        "primitive_op.name.as_str().unwrap(): {:?}",
+                        primitive_op.name.as_str().unwrap()
+                    );
                     match primitive_op.name.as_str().unwrap() {
                         "add" => {
                             let add_operator_id = glenside_expr.add(Language::RelayOperator(
@@ -1996,6 +2045,19 @@ fn compile_expression(
                             ));
                             (
                                 compute(glenside_expr, ComputeType::ElementwiseAdd, pair_id),
+                                Some(operator_call),
+                            )
+                        }
+                        "subtract" => {
+                            let add_operator_id = glenside_expr.add(Language::RelayOperator(
+                                crate::language::RelayOperator::RelaySubtract,
+                            ));
+                            let operator_call = glenside_expr.add(Language::RelayOperatorCall(
+                                vec![add_operator_id, operator_call_a_id, operator_call_b_id]
+                                    .into_boxed_slice(),
+                            ));
+                            (
+                                compute(glenside_expr, ComputeType::ElementwiseSub, pair_id),
                                 Some(operator_call),
                             )
                         }
@@ -2273,11 +2335,11 @@ fn compile_expression(
                         1
                     );
                     assert_eq!(attrs.out_layout, "");
-                    assert_eq!(
-                        attrs.out_dtype,
-                        // TODO(@gussmith23) How to actually constrain this?
-                        tvm::DataType::new(3, 0, 0)
-                    );
+                    // assert_eq!(
+                    //     attrs.out_dtype,
+                    //     // TODO(@gussmith23) How to actually constrain this?
+                    //     tvm::DataType::new(3, 0, 0)
+                    // );
                     conv2d(
                         glenside_expr,
                         data_id,
@@ -2350,6 +2412,7 @@ fn compile_expression(
                         attrs.data_layout.as_str().unwrap(),
                         attrs.kernel_layout.as_str().unwrap(),
                         attrs.out_layout.as_str().unwrap(),
+                        dtype_from_tvm_dtype(attrs.out_dtype),
                     )
                 }
                 "nn.upsampling" => {
@@ -2468,6 +2531,48 @@ fn compile_expression(
                     let axis_id = glenside_expr.add(Language::Shape(axis_vec.into_boxed_slice()));
                     let opaque_operator_call = glenside_expr.add(Language::RelayOperatorCall(
                         vec![op_id, data_id, axis_id, keep_dims_id].into_boxed_slice(),
+                    ));
+                    (opaque_operator_call, None)
+                }
+                "sum" => {
+                    let op_id = glenside_expr.add(Language::RelayOperator(
+                        crate::language::RelayOperator::RelaySum,
+                    ));
+                    let data_id = get_compiled_expression(call.args.get(0).unwrap());
+                    let attrs = call
+                        .attrs
+                        .clone()
+                        .downcast::<tvm::ir::relay::attrs::reduce::ReduceAttrs>()
+                        .unwrap();
+                    let mut axis_vec = attrs
+                        .axis
+                        .clone()
+                        .into_iter()
+                        .map(|x| {
+                            x.clone().downcast::<tvm::ir::tir::IntImm>().unwrap().value as usize
+                        })
+                        .map(|x| glenside_expr.add(Language::Usize(x)))
+                        .collect::<Vec<_>>();
+                    let keep_dims_id =
+                        glenside_expr.add(Language::Usize(if attrs.keepdims { 1 } else { 0 }));
+                    if axis_vec.len() == 0 {
+                        axis_vec.push(glenside_expr.add(Language::Usize(0)));
+                    }
+                    let axis_id = glenside_expr.add(Language::Shape(axis_vec.into_boxed_slice()));
+                    let opaque_operator_call = glenside_expr.add(Language::RelayOperatorCall(
+                        vec![op_id, data_id, axis_id, keep_dims_id].into_boxed_slice(),
+                    ));
+                    (opaque_operator_call, None)
+                }
+                "fixed_point_multiply" => {
+                    let op_id = glenside_expr.add(Language::RelayOperator(
+                        crate::language::RelayOperator::RelayFixedPointMultiply,
+                    ));
+                    let data_id = get_compiled_expression(call.args.get(0).unwrap());
+                    let multiplier_id = get_compiled_expression(call.args.get(1).unwrap());
+                    let shift_id = get_compiled_expression(call.args.get(2).unwrap());
+                    let opaque_operator_call = glenside_expr.add(Language::RelayOperatorCall(
+                        vec![op_id, data_id, multiplier_id, shift_id].into_boxed_slice(),
                     ));
                     (opaque_operator_call, None)
                 }

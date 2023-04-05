@@ -707,6 +707,7 @@ fn codegen_helper(
                 RelayOperator::RelayMean => todo!(),
                 RelayOperator::RelaySplit => todo!(),
                 RelayOperator::RelayMultiply => todo!(),
+                RelayOperator::RelayFixedPointMultiply => todo!(),
                 RelayOperator::RelayBatchNormInference => {
                     let data = get_c_variable_for_id(expr, ids[1]);
                     let gamma = get_c_variable_for_id(expr, ids[2]);
@@ -1086,6 +1087,8 @@ add_with_broadcasting((float*) {out}, (float*) {X}, (float*) {Y}, (int*)  {out_s
 
                     Some(add_out)
                 }
+                RelayOperator::RelaySum => todo!(),
+                RelayOperator::RelaySubtract => todo!(),
                 RelayOperator::RelayLeakyReLU => todo!(),
                 RelayOperator::RelaySigmoid => todo!(),
                 RelayOperator::RelayAvgPool2D => todo!(),
@@ -1542,7 +1545,9 @@ if (i{pad_axis} < {pad_before_index} || i{pad_axis} >= {pad_after_index}) {{
                         .collect::<Vec<_>>()
                         .join(""),
                     pad_value = match pad_type {
-                        PadType::ZeroPadding => "0",
+                        PadType::FloatPadding(f) => format!("{}", f),
+                        PadType::IntPadding(i) => format!("{}", i),
+                        PadType::ZeroPadding => "0".to_string(),
                         PadType::MinPadding => todo!(),
                     },
                     in_name = access_var_name,

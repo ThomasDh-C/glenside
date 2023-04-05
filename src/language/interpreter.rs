@@ -59,6 +59,7 @@ pub fn interpret_from_str<DataType: 'static>(
 ) -> Value<DataType>
 where
     DataType: Copy
+        + std::ops::Sub<Output = DataType>
         + std::ops::Mul<Output = DataType>
         + std::ops::Div<Output = DataType>
         + std::ops::Neg<Output = DataType>
@@ -112,6 +113,7 @@ pub fn interpret<DataType: 'static>(
 ) -> Value<DataType>
 where
     DataType: Copy
+        + std::ops::Sub<Output = DataType>
         + std::ops::Mul<Output = DataType>
         + std::ops::Div<Output = DataType>
         + std::ops::Neg<Output = DataType>
@@ -406,8 +408,12 @@ where
                         ndarray::ArrayD::from_elem(
                             before_shape,
                             match &pad_type {
+                                // PadType::FloatPadding(f32) => num_traits::float::Float(*f32),
+                                // PadType::IntPadding(i32) => Int32(*i32),
                                 PadType::ZeroPadding => DataType::zero(),
                                 PadType::MinPadding => DataType::min_value(),
+                                PadType::FloatPadding(_) => todo!(),
+                                PadType::IntPadding(_) => todo!(),
                             },
                         )
                         .to_owned()
@@ -418,6 +424,8 @@ where
                             match &pad_type {
                                 PadType::ZeroPadding => DataType::zero(),
                                 PadType::MinPadding => DataType::min_value(),
+                                PadType::FloatPadding(_) => todo!(),
+                                PadType::IntPadding(_) => todo!(),
                             },
                         )
                         .to_owned()
@@ -549,6 +557,27 @@ where
                                     .as_slice(),
                             ),
                             |acc, t| acc + t,
+                        ),
+                }),
+                ComputeType::ElementwiseSub => Value::Access(Access {
+                    access_axis: access.access_axis,
+                    tensor: access
+                        .tensor
+                        .axis_iter(ndarray::Axis(access.access_axis))
+                        .fold(
+                            ndarray::ArrayBase::zeros(
+                                access.tensor.shape()[..access.access_axis]
+                                    .iter()
+                                    .cloned()
+                                    .chain(
+                                        access.tensor.shape()[access.access_axis + 1..]
+                                            .iter()
+                                            .cloned(),
+                                    )
+                                    .collect::<Vec<_>>()
+                                    .as_slice(),
+                            ),
+                            |acc, t| acc - t,
                         ),
                 }),
                 ComputeType::DotProduct => {

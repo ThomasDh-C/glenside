@@ -119,6 +119,7 @@ impl egg::CostFunction<Language> for MonolithicCostFunction<'_> {
                 crate::language::ComputeType::Sqrt => 1,
                 crate::language::ComputeType::Negative => 1,
                 crate::language::ComputeType::ElementwiseAdd => 1,
+                crate::language::ComputeType::ElementwiseSub => 1,
                 crate::language::ComputeType::ElementwiseMul => 1,
                 crate::language::ComputeType::ElementwiseDiv => 1,
                 crate::language::ComputeType::ReduceMax => 1,
