@@ -706,9 +706,9 @@ pub fn prelu_on_nvdla() -> RW {
 
 pub fn batchnorm_on_nvdla() -> RW {
     rewrite!("batchnorm-on-nvdla";
-            "(relay-operator-call relay-batch-norm-inference ?data ?gamma ?beta ?moving_mean ?moving_var ?axis ?epsilon ?center ?scale)"
+            "(relay-operator-call relay-batch-norm-inference ?data ?gamma ?beta ?moving_mean ?moving_var ?axis ?epsilon)"
             =>
-            "(accelerator-call nvdla-channelbatchnorm ?data ?gamma ?beta ?moving_mean ?moving_var ?axis ?epsilon ?center ?scale (shape 0))")
+            "(accelerator-call nvdla-channelbatchnorm ?data ?gamma ?beta ?moving_mean ?moving_var ?axis ?epsilon (shape 0))")
 }
 
 pub fn conv2d_on_nvdla() -> RW {

@@ -1957,14 +1957,6 @@ impl egg::Analysis<Language> for MyAnalysis {
                     // TODO: TDC - don't think this is reducing the size to 1
                     crate::language::AcceleratorFunc::NVDLAChannelBiasAdd
                     | crate::language::AcceleratorFunc::NVDLAChannelPrelu => {
-                        // println!(
-                        //     "{:?}",
-                        //     ids[1..]
-                        //         .iter()
-                        //         .map(|id| &egraph[*id].data)
-                        //         .collect::<Vec<_>>()[..][2]
-                        // );
-
                         let mut access = match ids[1..]
                             .iter()
                             .map(|id| &egraph[*id].data)
@@ -1986,17 +1978,33 @@ impl egg::Analysis<Language> for MyAnalysis {
 
                         MyAnalysisData::AccessPattern(access)
                     }
-                    // TODO: TDC again copy pasted
+                    // TODO: TDC again copy pasted --> Mike fix me
                     crate::language::AcceleratorFunc::NVDLAChannelBatchNorm => {
-                        let mut access = match ids[1..]
-                            .iter()
-                            .map(|id| &egraph[*id].data)
-                            .collect::<Vec<_>>()[..]
-                        {
-                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::Usize(_) | MyAnalysisData::Shape(_), MyAnalysisData::Literal(_)] => {
-                                a.clone()
-                            }
-                            _ => panic!("Parameters do not type check"),
+                        // println!(
+                        //     "{:?}",
+                        //     ids[1..]
+                        //         .iter()
+                        //         .map(|id| &egraph[*id].data)
+                        //         .collect::<Vec<_>>()[..]
+                        //         .len()
+                        // );
+                        println!("Fix NVDLAChannelBatchNorm - works but incorrect");
+                        // let mut access = match ids[1..]
+                        //     .iter()
+                        //     .map(|id| &egraph[*id].data)
+                        //     .collect::<Vec<_>>()[..]
+                        // {
+                        //     //                                                    1a           1b                     2                                 3                           4                             5                         6                                          7
+                        //     // "(relay-operator-call relay-batch-norm-inference ?data                                ?gamma                            ?beta                       ?moving_mean                  ?moving_var             ?axis                                          ?epsilon)"
+                        //     // batchNormInference((float*) {X},(float*) {Y}, {N}, {H}, {W}, {C}, (float*) {gamma}, (float*) {beta}, (float*) {moving_mean}, (float*) {moving_var}, {epsilon});
+                        //     [MyAnalysisData::AccessPattern(a), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::AccessPattern(_), MyAnalysisData::Usize(_) | MyAnalysisData::Shape(_), MyAnalysisData::Literal(_)] => {
+                        //         a.clone()
+                        //     }
+                        //     _ => panic!("Parameters do not type check"),
+                        // };
+                        let mut access = match &egraph[ids[1]].data {
+                            MyAnalysisData::AccessPattern(a) => a.clone(),
+                            _ => panic!(),
                         };
 
                         if !access.zero_regions.is_empty() {
