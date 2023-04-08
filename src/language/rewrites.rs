@@ -713,9 +713,9 @@ pub fn batchnorm_on_nvdla() -> RW {
 
 pub fn conv2d_on_nvdla() -> RW {
     rewrite!("conv2d-on-nvdla";
-            "(relay-operator-call relay-conv2d ?data ?weight ?strides ?padding ?dilation ?groups ?channels ?kernel_size ?data_layout ?kernel_layout ?out_layout ?data_type ?out_dtype)"
+            "(relay-operator-call relay-conv2d ?data ?weight ?strides ?padding ?groups ?channels ?kernel_size ?data_layout ?kernel_layout ?out_dtype)"
             =>
-            "(accelerator-call nvdla-conv2d ?data ?weight ?strides ?padding ?dilation ?groups ?channels ?kernel_size ?data_layout ?kernel_layout ?out_layout ?out_dtype (shape 0))")
+            "(accelerator-call nvdla-conv2d ?data ?weight ?strides ?padding ?groups ?channels ?kernel_size ?data_layout ?kernel_layout (shape 0))")
 }
 
 pub fn avgpool2d_on_nvdla() -> RW {

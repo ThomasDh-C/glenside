@@ -1954,14 +1954,23 @@ impl egg::Analysis<Language> for MyAnalysis {
                         })
                     }
                     // TODO: TDC - unclear how this works? copy pasted ... I need this to reduce the size to 1 in the range of channels
+                    // TODO: TDC - don't think this is reducing the size to 1
                     crate::language::AcceleratorFunc::NVDLAChannelBiasAdd
                     | crate::language::AcceleratorFunc::NVDLAChannelPrelu => {
+                        // println!(
+                        //     "{:?}",
+                        //     ids[1..]
+                        //         .iter()
+                        //         .map(|id| &egraph[*id].data)
+                        //         .collect::<Vec<_>>()[..][2]
+                        // );
+
                         let mut access = match ids[1..]
                             .iter()
                             .map(|id| &egraph[*id].data)
                             .collect::<Vec<_>>()[..]
                         {
-                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::AccessPattern(_), MyAnalysisData::Usize(_) | MyAnalysisData::Shape(_)] => {
+                            [MyAnalysisData::AccessPattern(a), MyAnalysisData::AccessPattern(_), MyAnalysisData::Usize(_), MyAnalysisData::Shape(_)] => {
                                 a.clone()
                             }
                             _ => panic!("Parameters do not type check"),
@@ -2007,7 +2016,8 @@ impl egg::Analysis<Language> for MyAnalysis {
                             .map(|id| &egraph[*id].data)
                             .collect::<Vec<_>>()[..]
                         {
-                            [MyAnalysisData::AccessPattern(data), MyAnalysisData::AccessPattern(weight), MyAnalysisData::Shape(strides), MyAnalysisData::Shape(padding), MyAnalysisData::Usize(group), MyAnalysisData::Usize(channels), MyAnalysisData::Shape(kernel_size), MyAnalysisData::RelayActivationLayout(act_layout), MyAnalysisData::RelayKernelLayout(ker_layout)] =>
+                            // relay-operator-call relay-conv2d ?data ?weight ?strides ?padding ?groups ?channels ?kernel_size ?data_layout ?kernel_layout ?out_dtype
+                            [MyAnalysisData::AccessPattern(data), MyAnalysisData::AccessPattern(weight), MyAnalysisData::Shape(strides), MyAnalysisData::Shape(padding), MyAnalysisData::Usize(group), MyAnalysisData::Usize(channels), MyAnalysisData::Shape(kernel_size), MyAnalysisData::RelayActivationLayout(act_layout), MyAnalysisData::RelayKernelLayout(ker_layout), _] =>
                             {
                                 // match act_layout {
                                 //     crate::language::RelayActivationLayout::NCHW => (),

@@ -672,9 +672,12 @@ pub fn dtype_from_tvm_dtype(t: tvm::DataType) -> crate::language::DataType {
         return crate::language::DataType::Int(32);
     } else if t.is_type::<i8>() {
         return crate::language::DataType::Int(8);
+    } else if t.is_type::<i16>() {
+        return crate::language::DataType::Int(16);
     }
-
-    panic!("Unknown datatype");
+    // printf!("{:?}", t);
+    panic!("{:?} is an unknown datatype", t);
+    // panic!("Unknown datatype");
 }
 
 pub fn dtype_from_type(t: tvm::ir::ty::Type) -> crate::language::DataType {
@@ -2412,7 +2415,7 @@ fn compile_expression(
                         attrs.data_layout.as_str().unwrap(),
                         attrs.kernel_layout.as_str().unwrap(),
                         attrs.out_layout.as_str().unwrap(),
-                        dtype_from_tvm_dtype(attrs.out_dtype),
+                        dtype_from_type(call.args.get(0).unwrap().checked_type.clone()),
                     )
                 }
                 "nn.upsampling" => {
