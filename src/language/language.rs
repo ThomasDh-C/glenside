@@ -725,6 +725,7 @@ pub enum AcceleratorFunc {
     NVDLAElemwiseMax,
     NVDLAElemwiseMin,
     NVDLAElemwiseEqual,
+    NVDLAElemwiseAdd,
     NVDLAElemwiseMul,
     NVDLAChannelPrelu,
     NVDLAChannelBatchNorm,
@@ -759,6 +760,7 @@ impl FromStr for AcceleratorFunc {
             "nvdla-elemwisemin" => Ok(AcceleratorFunc::NVDLAElemwiseMin),
             "nvdla-elemwiseequal" => Ok(AcceleratorFunc::NVDLAElemwiseEqual),
             "nvdla-elemwisemul" => Ok(AcceleratorFunc::NVDLAElemwiseMul),
+            "nvdla-elemwiseadd" => Ok(AcceleratorFunc::NVDLAElemwiseAdd),
             "nvdla-channelprelu" => Ok(AcceleratorFunc::NVDLAChannelPrelu),
             "nvdla-channelbatchnorm" => Ok(AcceleratorFunc::NVDLAChannelBatchNorm),
             "nvdla-conv2d" => Ok(AcceleratorFunc::NVDLAConv2d),
@@ -787,6 +789,7 @@ impl Display for AcceleratorFunc {
                 AcceleratorFunc::NVDLAElemwiseMin => "nvdla-elemwisemin",
                 AcceleratorFunc::NVDLAElemwiseEqual => "nvdla-elemwiseequal",
                 AcceleratorFunc::NVDLAElemwiseMul => "nvdla-elemwisemul",
+                AcceleratorFunc::NVDLAElemwiseAdd => "nvdla-elemwiseadd",
                 AcceleratorFunc::NVDLAChannelPrelu => "nvdla-channelprelu",
                 AcceleratorFunc::NVDLAChannelBatchNorm => "nvdla-channelbatchnorm",
                 AcceleratorFunc::NVDLAConv2d => "nvdla-conv2d",
@@ -1934,6 +1937,7 @@ impl egg::Analysis<Language> for MyAnalysis {
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMax
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMin
                     | crate::language::AcceleratorFunc::NVDLAElemwiseEqual
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseAdd
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMul => {
                         let access_pattern = match &egraph[ids[1]].data {
                             MyAnalysisData::AccessPattern(a) => a.clone(),
@@ -2199,6 +2203,7 @@ impl egg::Analysis<Language> for MyAnalysis {
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMin
                     | crate::language::AcceleratorFunc::NVDLAElemwiseEqual
                     | crate::language::AcceleratorFunc::NVDLAElemwiseMul
+                    | crate::language::AcceleratorFunc::NVDLAElemwiseAdd
                     | crate::language::AcceleratorFunc::NVDLAChannelPrelu
                     | crate::language::AcceleratorFunc::NVDLAChannelBatchNorm
                     | crate::language::AcceleratorFunc::NVDLAConv2d

@@ -697,6 +697,13 @@ pub fn elemwisemul_on_nvdla() -> RW {
             "(accelerator-call nvdla-elemwisemul ?lhs ?rhs (shape 0))")
 }
 
+pub fn elemwiseadd_on_nvdla() -> RW {
+    rewrite!("elemwisemul-on-nvdla";
+            "(relay-operator-call relay-add ?lhs ?rhs)"
+            =>
+            "(accelerator-call nvdla-elemwiseadd ?lhs ?rhs (shape 0))")
+}
+
 pub fn prelu_on_nvdla() -> RW {
     rewrite!("prelu-on-nvdla";
             "(relay-operator-call relay-prelu ?data ?alpha ?axis)"
