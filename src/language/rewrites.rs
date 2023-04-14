@@ -654,6 +654,48 @@ pub fn conv2d_on_hlscnn() -> RW {
             if is_one("?group".parse().unwrap()))
 }
 
+// let (mut access, pool_size, strides, padding, layout) = match params[1..]
+// .iter()
+// .map(|id| &egraph[*id].data)
+// .collect::<Vec<_>>()[..]
+// {
+// [MyAnalysisData::AccessPattern(a), MyAnalysisData::Shape(pool_size), MyAnalysisData::Shape(strides), MyAnalysisData::Shape(padding), MyAnalysisData::RelayActivationLayout(l)] => {
+//     (a.clone(), pool_size, strides, padding, l)
+// }
+// _ => panic!("Parameters do not type check"),
+// };
+pub fn global_avg_pooling_to_avg_pooling() -> RW {
+    struct RwApplier(Var);
+    impl Applier<Language, MyAnalysis> for RwApplier {
+        fn apply_one(&self, egraph: &mut EG, eclass: Id, subst: &Subst) -> Vec<Id> {
+            let id = subst[self.0];
+            let access_pattern = match &egraph[id].data {
+                MyAnalysisData::AccessPattern(a) => a,
+              
+                _ => panic!("Not a tensor")
+            };
+            let kernel_shape = access_pattern.shape
+                                .as_array_view()
+                                .iter()
+                                .cloned()
+                                .chain(access_pattern.item_shape.as_array_view().iter().cloned())
+                                .collect::<Vec<_>>();
+            assert_eq!(kernel_shape.len(), 4);
+            let pattern = format!("(relay-operator-call relay-avg-pool2d ?x (shape {} {}) (shape 1 1) (shape 0 0 0 0) relay-activation-layout-nchw)",
+                                kernel_shape[2], kernel_shape[3]);
+            return pattern
+                    .parse::<Pattern<Language>>()
+                    .unwrap()
+                    .apply_one(egraph, eclass, subst);
+        }
+    }
+    rewrite!(
+        "global-avg-pool-to-avg-pooling";
+        "(relay-operator-call relay-global-avg-pool2d ?x ?layout)"
+        => { RwApplier("?x".parse().unwrap()) }
+    )
+}
+
 pub fn relu_on_nvdla() -> RW {
     rewrite!("relu-on-nvdla";
             "(relay-operator-call relay-relu ?data)"
@@ -698,7 +740,7 @@ pub fn elemwisemul_on_nvdla() -> RW {
 }
 
 pub fn elemwiseadd_on_nvdla() -> RW {
-    rewrite!("elemwisemul-on-nvdla";
+    rewrite!("elemwiseadd-on-nvdla";
             "(relay-operator-call relay-add ?lhs ?rhs)"
             =>
             "(accelerator-call nvdla-elemwiseadd ?lhs ?rhs (shape 0))")
@@ -727,9 +769,9 @@ pub fn conv2d_on_nvdla() -> RW {
 
 pub fn avgpool2d_on_nvdla() -> RW {
     rewrite!("avgpool2d-on-nvdla";
-            "(relay-operator-call relay-avgpool2d ?data ?pool_size ?strides ?dilation ?padding ?layout ?out_layout ?ceil_mode ?count_include_pad)"
+            "(relay-operator-call relay-avg-pool2d ?data ?pool_size ?strides ?padding ?layout)"
             =>
-            "(accelerator-call nvdla-avgpool2d ?data ?pool_size ?strides ?dilation ?padding ?layout ?out_layout ?ceil_mode ?count_include_pad (shape 0))")
+            "(accelerator-call nvdla-avgpool2d ?data ?pool_size ?strides ?padding ?layout (shape 0))")
 }
 
 pub fn maxpool2d_on_nvdla() -> RW {
